@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Career Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        :root {
+            /* New color scheme - light mode */
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --background: #f8fafc;
+            --card-background: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --error-hover: #dc2626;
+            
+            /* New color scheme - dark mode */
+            --background-dark: #0f172a;
+            --card-background-dark: #1e293b;
+            --text-dark: #f8fafc;
+            --text-secondary-dark: #94a3b8;
+            --border-dark: #334155;
+        }
+
+        body {
+            background: var(--background);
+            color: var(--text);
+            transition: all 0.3s ease;
+        }
+
+        body.dark {
+            background: var(--background-dark);
+            color: var(--text-dark);
+        }
+
+        .nav {
+            background: linear-gradient(to right, var(--primary), #2563eb);
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        }
+
+        .card {
+            background: var(--card-background);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        .dark .card {
+            background: var(--card-background-dark);
+            border: 1px solid var(--border-dark);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            border: none;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-error {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-error:hover {
+            background: var(--error-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .status-chip {
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            width: fit-content;
+        }
+
+        .status-chip.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-chip.pending {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        .status-chip.rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .dark .status-chip.active {
+            background: rgba(22, 101, 52, 0.3);
+            color: #bbf7d0;
+        }
+
+        .dark .status-chip.pending {
+            background: rgba(133, 77, 14, 0.3);
+            color: #fef9c3;
+        }
+
+        .dark .status-chip.rejected {
+            background: rgba(153, 27, 27, 0.3);
+            color: #fecaca;
+        }
+
+        .table-container {
+            background: var(--card-background);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            margin-top: 2rem;
+        }
+
+        .dark .table-container {
+            background: var(--card-background-dark);
+            border: 1px solid var(--border-dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.02);
+            position: sticky;
+            top: 0;
+        }
+
+        .dark th {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        td {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dark td {
+            border-bottom: 1px solid var(--border-dark);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            background: var(--card-background);
+            color: var(--text);
+            transition: all 0.2s ease;
+        }
+
+        .dark .form-input {
+            background: var(--card-background-dark);
+            border: 1px solid var(--border-dark);
+            color: var(--text-dark);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .admin-section {
+            display: none;
+        }
+
+        .admin-visible .admin-section {
+            display: block;
+        }
+
+        .admin-visible .public-section {
+            display: none;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal {
+            background: var(--card-background);
+            border-radius: 1rem;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .dark .modal {
+            background: var(--card-background-dark);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .dark .modal-close {
+            color: var(--text-secondary-dark);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            background: var(--success);
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.error {
+            background: var(--error);
+        }
+
+        .application-details h4 {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .application-details p {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="dark">
+    <nav class="nav">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1 style="font-size: 1.5rem; font-weight: 700; color: white;">CareerPortal</h1>
+                <div style="display: flex; gap: 1rem;">
+                    <button onclick="toggleAdminView()" class="btn btn-primary" id="viewToggle" style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px);">
+                        👥 Admin View
+                    </button>
+                    <button onclick="toggleDarkMode()" class="btn btn-primary" style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px);">
+                        <span id="themeIcon">🌙</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Public View -->
+        <div class="public-section">
+            <h2 style="font-size: 2rem; margin-bottom: 2rem; font-weight: 700;">Available Positions</h2>
+            <div class="grid" id="jobsContainer"></div>
+
+            <!-- Application Form -->
+            <div id="applicationForm" class="card hidden" style="max-width: 600px; margin: 2rem auto;">
+                <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Apply for <span id="jobTitlePlaceholder"></span></h2>
+                <form id="applicationFormElement">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" class="form-input" id="applicantName" required placeholder="Enter your full name">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" class="form-input" id="applicantEmail" required placeholder="Enter your email address">
+                    </div>
+                    <div class="form-group">
+                        <label>Cover Letter</label>
+                        <textarea class="form-input" id="coverLetter" rows="4" required placeholder="Tell us why you're a great fit for this position..."></textarea>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <button type="button" class="btn" onclick="hideApplicationForm()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit Application</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin View -->
+        <div class="admin-section">
+            <div class="card">
+                <h2 style="font-size: 2rem; margin-bottom: 2rem; font-weight: 700;">Admin Dashboard</h2>
+                
+                <!-- Job Post Form -->
+                <div style="margin-bottom: 3rem;">
+                    <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Post New Job</h3>
+                    <form id="jobForm">
+                        <div class="form-group">
+                            <label>Job Title</label>
+                            <input type="text" class="form-input" id="jobTitle" required placeholder="e.g. Senior Frontend Developer">
+                        </div>
+                        <div class="form-group">
+                            <label>Company Name</label>
+                            <input type="text" class="form-input" id="jobCompany" required placeholder="e.g. Acme Corp">
+                        </div>
+                        <div class="form-group">
+                            <label>Job Description</label>
+                            <textarea class="form-input" id="jobDescription" rows="4" required placeholder="Provide a detailed description of the role..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit for Approval</button>
+                    </form>
+                </div>
+
+                <!-- Approvals Table -->
+                <div class="table-container">
+                    <h3 style="font-size: 1.5rem; padding: 1rem;">Job Approvals</h3>
+                    <table id="adminJobsTable">
+                        <thead>
+                            <tr>
+                                <th>Position</th>
+                                <th>Company</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Applications Table -->
+                <div class="table-container" style="margin-top: 2rem;">
+                    <h3 style="font-size: 1.5rem; padding: 1rem;">Applications</h3>
+                    <table id="adminApplicationsTable">
+                        <thead>
+                            <tr>
+                                <th>Applicant</th>
+                                <th>Position</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Application Details Modal -->
+    <div id="applicationModal" class="modal-backdrop hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Application Details</h3>
+                <button class="modal-close" onclick="closeModal('applicationModal')">&times;</button>
+            </div>
+            <div class="application-details" id="applicationDetails">
+                <!-- Content will be populated dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('applicationModal')">Close</button>
+                <button class="btn btn-error" id="rejectAppBtn">Reject</button>
+                <button class="btn btn-primary" id="approveAppBtn">Approve</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        Application submitted successfully!
+    </div>
+
+    <script>
+        // Data Storage
+        let jobs = JSON.parse(localStorage.getItem('jobs')) || [];
+        let applications = JSON.parse(localStorage.getItem('applications')) || [];
+        let isAdminView = false;
+        let darkMode = localStorage.getItem('darkMode') === 'true';
+        let currentApplicationId = null;
+
+        // Toggle Views
+        function toggleAdminView() {
+            isAdminView = !isAdminView;
+            document.body.classList.toggle('admin-visible');
+            document.getElementById('viewToggle').textContent = isAdminView ? '👤 Public View' : '👥 Admin View';
+            if (isAdminView) {
+                renderAdminTables();
+            } else {
+                renderPublicJobs();
+            }
+        }
+
+        // Dark Mode
+        function toggleDarkMode() {
+            darkMode = !darkMode;
+            document.body.classList.toggle('dark');
+            localStorage.setItem('darkMode', darkMode);
+            document.getElementById('themeIcon').textContent = darkMode ? '☀️' : '🌙';
+        }
+
+        // Render Public Jobs
+        function renderPublicJobs() {
+            const container = document.getElementById('jobsContainer');
+            const approvedJobs = jobs.filter(job => job.status === 'approved');
+            
+            if (approvedJobs.length === 0) {
+                container.innerHTML = `
+                    <div class="card" style="grid-column: 1 / -1; text-align: center;">
+                        <h3 style="font-size: 1.25rem; margin-bottom: 1rem;">No positions available at the moment</h3>
+                        <p>Check back soon for new opportunities!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = approvedJobs.map(job => `
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 1.25rem; font-weight: 600;">${job.title}</h3>
+                        <span class="status-chip active">Active</span>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">${job.company}</p>
+                    <p style="margin-bottom: 1.5rem;">${job.description}</p>
+                    <button onclick="showApplication('${job.id}')" class="btn btn-primary">Apply Now</button>
+                </div>
+            `).join('');
+        }
+
+        // Render Admin Tables
+        function renderAdminTables() {
+            // Jobs Table
+            const jobsTable = document.querySelector('#adminJobsTable tbody');
+            
+            if (jobs.length === 0) {
+                jobsTable.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center;">No jobs posted yet</td>
+                    </tr>
+                `;
+            } else {
+                jobsTable.innerHTML = jobs.map(job => `
+                    <tr>
+                        <td>${job.title}</td>
+                        <td>${job.company}</td>
+                        <td><span class="status-chip ${job.status === 'approved' ? 'active' : 'pending'}">${job.status}</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                ${job.status !== 'approved' ? `
+                                    <button class="btn btn-primary btn-sm" onclick="approveJob('${job.id}')">Approve</button>
+                                ` : ''}
+                                <button class="btn btn-error btn-sm" onclick="deleteJob('${job.id}')">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Applications Table
+            const applicationsTable = document.querySelector('#adminApplicationsTable tbody');
+            
+            if (applications.length === 0) {
+                applicationsTable.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center;">No applications received yet</td>
+                    </tr>
+                `;
+            } else {
+                applicationsTable.innerHTML = applications.map(app => `
+                    <tr>
+                        <td>${app.name}</td>
+                        <td>${getJobTitle(app.jobId)}</td>
+                        <td><span class="status-chip ${getStatusClass(app.status)}">${app.status}</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-primary btn-sm" onclick="viewApplication('${app.id}')">View</button>
+                                ${app.status === 'pending' ? `
+                                    <button class="btn btn-primary btn-sm" onclick="approveApplication('${app.id}')">Approve</button>
+                                    <button class="btn btn-error btn-sm" onclick="rejectApplication('${app.id}')">Reject</button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function getStatusClass(status) {
+            switch(status) {
+                case 'approved': return 'active';
+                case 'rejected': return 'rejected';
+                default: return 'pending';
+            }
+        }
+
+        // Job Form Submission
+        document.getElementById('jobForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            showLoading();
+            
+            const newJob = {
+                id: Date.now().toString(),
+                title: document.getElementById('jobTitle').value,
+                company: document.getElementById('jobCompany').value,
+                description: document.getElementById('jobDescription').value,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
+            
+            // Simulate network delay
+            setTimeout(() => {
+                jobs.push(newJob);
+                saveData();
+                renderAdminTables();
+                e.target.reset();
+                hideLoading();
+                showToast('Job posted successfully!');
+            }, 800);
+        });
+
+        // Application Form Submission
+        document.getElementById('applicationFormElement').addEventListener('submit', (e) => {
+            e.preventDefault();
+            showLoading();
+            
+            const jobId = document.getElementById('applicationForm').dataset.jobId;
+            const newApplication = {
+                id: Date.now().toString(),
+                jobId,
+                name: document.getElementById('applicantName').value,
+                email: document.getElementById('applicantEmail').value,
+                coverLetter: document.getElementById('coverLetter').value,
+                status: 'pending',
+                appliedAt: new Date().toISOString()
+            };
+            
+            // Simulate network delay
+            setTimeout(() => {
+                applications.push(newApplication);
+                saveData();
+                hideApplicationForm();
+                hideLoading();
+                showToast('Application submitted successfully!');
+                e.target.reset();
+            }, 1000);
+        });
+
+        // Show/Hide Application Form
+        function showApplication(jobId) {
+            const job = jobs.find(j => j.id === jobId);
+            if (job) {
+                document.getElementById('jobTitlePlaceholder').textContent = job.title;
+                document.getElementById('applicationForm').classList.remove('hidden');
+                document.getElementById('applicationForm').dataset.jobId = jobId;
+                // Scroll to form
+                document.getElementById('applicationForm').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function hideApplicationForm() {
+            document.getElementById('applicationForm').classList.add('hidden');
+        }
+
+        // Show Application Details Modal
+        function viewApplication(appId) {
+            const app = applications.find(a => a.id === appId);
+            if (!app) return;
+            
+            const job = jobs.find(j => j.id === app.jobId);
+            const jobTitle = job ? job.title : 'Deleted Job';
+            const companyName = job ? job.company : 'N/A';
+            
+            currentApplicationId = appId;
+            
+            // Format date
+            const appliedDate = new Date(app.appliedAt).toLocaleDateString(undefined, {
+                year: 'numeric', month: 'long', day: 'numeric'
+            });
+            
+            document.getElementById('applicationDetails').innerHTML = `
+                <h4>Applicant</h4>
+                <p>${app.name}</p>
+                
+                <h4>Email</h4>
+                <p>${app.email}</p>
+                
+                <h4>Applied For</h4>
+                <p>${jobTitle} at ${companyName}</p>
+                
+                <h4>Applied On</h4>
+                <p>${appliedDate}</p>
+                
+                <h4>Status</h4>
+                <p><span class="status-chip ${getStatusClass(app.status)}">${app.status}</span></p>
+                
+                <h4>Cover Letter</h4>
+                <p style="white-space: pre-line">${app.coverLetter}</p>
+            `;
+            
+            // Configure buttons based on status
+            const approveBtn = document.getElementById('approveAppBtn');
+            const rejectBtn = document.getElementById('rejectAppBtn');
+            
+            if (app.status === 'pending') {
+                approveBtn.style.display = 'block';
+                rejectBtn.style.display = 'block';
+                
+                approveBtn.onclick = () => {
+                    approveApplication(appId); 
+                    closeModal('applicationModal');
+                };
+                
+                rejectBtn.onclick = () => {
+                    rejectApplication(appId);
+                    closeModal('applicationModal');
+                };
+            } else {
+                approveBtn.style.display = 'none';
+                rejectBtn.style.display = 'none';
+            }
+            
+            document.getElementById('applicationModal').classList.remove('hidden');
+        }
+
+        // Modal Functions
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            currentApplicationId = null;
+        }
+
+        // Admin Actions
+        function approveJob(jobId) {
+            showLoading();
+            setTimeout(() => {
+                jobs = jobs.map(job => job.id === jobId ? {...job, status: 'approved'} : job);
+                saveData();
+                renderAdminTables();
+                hideLoading();
+                showToast('Job approved successfully!');
+            }, 500);
+        }
+
+        function deleteJob(jobId) {
+            if (confirm('Are you sure you want to delete this job?')) {
+                showLoading();
+                setTimeout(() => {
+                    jobs = jobs.filter(job => job.id !== jobId);
+                    saveData();
+                    renderAdminTables();
+                    hideLoading();
+                    showToast('Job deleted successfully!', 'error');
+                }, 500);
+            }
+        }
+
+        function approveApplication(appId) {
+            showLoading();
+            setTimeout(() => {
+                applications = applications.map(app => app.id === appId ? {...app, status: 'approved'} : app);
+                saveData();
+                renderAdminTables();
+                hideLoading();
+                showToast('Application approved!');
+            }, 500);
+        }
+
+        function rejectApplication(appId) {
+            showLoading();
+            setTimeout(() => {
+                applications = applications.map(app => app.id === appId ? {...app, status: 'rejected'} : app);
+                saveData();
+                renderAdminTables();
+                hideLoading();
+                showToast('Application rejected', 'error');
+            }, 500);
+        }
+
+        // Loading Overlay
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        // Toast Notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast';
+            if (type === 'error') {
+                toast.classList.add('error');
+            }
+            
+            setTimeout(() => {
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }, 100);
+        }
+
+        // Helpers
+        function getJobTitle(jobId) {
+            const job = jobs.find(job => job.id === jobId);
+            return job ? job.title : 'Deleted Job';
+        }
+
+        function saveData() {
+            localStorage.setItem('jobs', JSON.stringify(jobs));
+            localStorage.setItem('applications', JSON.stringify(applications));
+        }
+
+        // Initialize
+        if (darkMode) {
+            document.body.classList.add('dark');
+            document.getElementById('themeIcon').textContent = '☀️';
+        }
+        renderPublicJobs();
+    </script>
+</body>
+</html>

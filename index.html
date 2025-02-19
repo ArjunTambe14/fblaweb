@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Career Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        :root {
+            /* New color scheme - light mode */
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --background: #f8fafc;
+            --card-background: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            
+            /* New color scheme - dark mode */
+            --background-dark: #0f172a;
+            --card-background-dark: #1e293b;
+            --text-dark: #f8fafc;
+            --text-secondary-dark: #94a3b8;
+            --border-dark: #334155;
+        }
+
+        body {
+            background: var(--background);
+            color: var(--text);
+            transition: all 0.3s ease;
+        }
+
+        body.dark {
+            background: var(--background-dark);
+            color: var(--text-dark);
+        }
+
+        .nav {
+            background: linear-gradient(to right, var(--primary), #2563eb);
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        }
+
+        .card {
+            background: var(--card-background);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        .dark .card {
+            background: var(--card-background-dark);
+            border: 1px solid var(--border-dark);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            border: none;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-chip {
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            width: fit-content;
+        }
+
+        .status-chip.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-chip.pending {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        .dark .status-chip.active {
+            background: rgba(22, 101, 52, 0.3);
+            color: #bbf7d0;
+        }
+
+        .dark .status-chip.pending {
+            background: rgba(133, 77, 14, 0.3);
+            color: #fef9c3;
+        }
+
+        .table-container {
+            background: var(--card-background);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            margin-top: 2rem;
+        }
+
+        .dark .table-container {
+            background: var(--card-background-dark);
+            border: 1px solid var(--border-dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .dark th {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        td {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dark td {
+            border-bottom: 1px solid var(--border-dark);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            background: var(--card-background);
+            color: var(--text);
+            transition: all 0.2s ease;
+        }
+
+        .dark .form-input {
+            background: var(--card-background-dark);
+            border: 1px solid var(--border-dark);
+            color: var(--text-dark);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .admin-section {
+            display: none;
+        }
+
+        .admin-visible .admin-section {
+            display: block;
+        }
+
+        .admin-visible .public-section {
+            display: none;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="dark">
+    <nav class="nav">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1 style="font-size: 1.5rem; font-weight: 700; color: white;">CareerPortal</h1>
+                <div style="display: flex; gap: 1rem;">
+                    <button onclick="toggleAdminView()" class="btn btn-primary" id="viewToggle" style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px);">
+                        👥 Admin View
+                    </button>
+                    <button onclick="toggleDarkMode()" class="btn btn-primary" style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px);">
+                        <span id="themeIcon">🌙</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Public View -->
+        <div class="public-section">
+            <h2 style="font-size: 2rem; margin-bottom: 2rem; font-weight: 700;">Available Positions</h2>
+            <div class="grid" id="jobsContainer"></div>
+
+            <!-- Application Form -->
+            <div id="applicationForm" class="card hidden" style="max-width: 600px; margin: 2rem auto;">
+                <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Apply for Position</h2>
+                <form id="applicationFormElement">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" class="form-input" id="applicantName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" class="form-input" id="applicantEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Cover Letter</label>
+                        <textarea class="form-input" id="coverLetter" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit Application</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin View -->
+        <div class="admin-section">
+            <div class="card">
+                <h2 style="font-size: 2rem; margin-bottom: 2rem; font-weight: 700;">Admin Dashboard</h2>
+                
+                <!-- Job Post Form -->
+                <div style="margin-bottom: 3rem;">
+                    <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Post New Job</h3>
+                    <form id="jobForm">
+                        <div class="form-group">
+                            <label>Job Title</label>
+                            <input type="text" class="form-input" id="jobTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Company Name</label>
+                            <input type="text" class="form-input" id="jobCompany" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Job Description</label>
+                            <textarea class="form-input" id="jobDescription" rows="4" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit for Approval</button>
+                    </form>
+                </div>
+
+                <!-- Approvals Table -->
+                <div class="table-container">
+                    <h3 style="font-size: 1.5rem; padding: 1rem;">Job Approvals</h3>
+                    <table id="adminJobsTable">
+                        <thead>
+                            <tr>
+                                <th>Position</th>
+                                <th>Company</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Applications Table -->
+                <div class="table-container" style="margin-top: 2rem;">
+                    <h3 style="font-size: 1.5rem; padding: 1rem;">Applications</h3>
+                    <table id="adminApplicationsTable">
+                        <thead>
+                            <tr>
+                                <th>Applicant</th>
+                                <th>Position</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Data Storage
+        let jobs = JSON.parse(localStorage.getItem('jobs')) || [];
+        let applications = JSON.parse(localStorage.getItem('applications')) || [];
+        let isAdminView = false;
+        let darkMode = localStorage.getItem('darkMode') === 'true';
+
+        // Toggle Views
+        function toggleAdminView() {
+            isAdminView = !isAdminView;
+            document.body.classList.toggle('admin-visible');
+            document.getElementById('viewToggle').textContent = isAdminView ? '👤 Public View' : '👥 Admin View';
+            if (isAdminView) {
+                renderAdminTables();
+            } else {
+                renderPublicJobs();
+            }
+        }
+
+        // Dark Mode
+        function toggleDarkMode() {
+            darkMode = !darkMode;
+            document.body.classList.toggle('dark');
+            localStorage.setItem('darkMode', darkMode);
+            document.getElementById('themeIcon').textContent = darkMode ? '☀️' : '🌙';
+        }
+
+        // Render Public Jobs
+        function renderPublicJobs() {
+            const container = document.getElementById('jobsContainer');
+            const approvedJobs = jobs.filter(job => job.status === 'approved');
+            
+            container.innerHTML = approvedJobs.map(job => `
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 1.25rem; font-weight: 600;">${job.title}</h3>
+                        <span class="status-chip active">Active</span>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">${job.company}</p>
+                    <p style="margin-bottom: 1.5rem;">${job.description}</p>
+                    <button onclick="showApplication('${job.id}')" class="btn btn-primary">Apply Now</button>
+                </div>
+            `).join('');
+        }
+
+        // Render Admin Tables
+        function renderAdminTables() {
+            // Jobs Table
+            document.querySelector('#adminJobsTable tbody').innerHTML = jobs.map(job => `
+                <tr>
+                    <td>${job.title}</td>
+                    <td>${job.company}</td>
+                    <td><span class="status-chip ${job.status === 'approved' ? 'active' : 'pending'}">${job.status}</span></td>
+                    <td>
+                        ${job.status !== 'approved' ? `
+                            <button class="btn btn-primary" onclick="approveJob('${job.id}')">Approve</button>
+                        ` : ''}
+                        <button class="btn btn-primary" style="background: var(--error)" onclick="deleteJob('${job.id}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Applications Table
+            document.querySelector('#adminApplicationsTable tbody').innerHTML = applications.map(app => `
+                <tr>
+                    <td>${app.name}</td>
+                    <td>${getJobTitle(app.jobId)}</td>
+                    <td><span class="status-chip ${app.status === 'approved' ? 'active' : 'pending'}">${app.status}</span></td>
+                    <td>
+                        <button class="btn btn-primary" onclick="approveApplication('${app.id}')">Approve</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Job Form Submission
+        document.getElementById('jobForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newJob = {
+                id: Date.now().toString(),
+                title: document.getElementById('jobTitle').value,
+                company: document.getElementById('jobCompany').value,
+                description: document.getElementById('jobDescription').value,
+                status: 'pending'
+            };
+            jobs.push(newJob);
+            saveData();
+            renderAdminTables();
+            e.target.reset();
+        });
+
+        // Application Form Submission
+        document.getElementById('applicationFormElement').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const jobId = document.getElementById('applicationForm').dataset.jobId;
+            const newApplication = {
+                id: Date.now().toString(),
+                jobId,
+                name: document.getElementById('applicantName').value,
+                email: document.getElementById('applicantEmail').value,
+                coverLetter: document.getElementById('coverLetter').value,
+                status: 'pending'
+            };
+            applications.push(newApplication);
+            saveData();
+            alert('Application submitted!');
+            hideApplicationForm();
+            e.target.reset();
+        });
+
+        // Show/Hide Application Form
+        function showApplication(jobId) {
+            document.getElementById('applicationForm').classList.remove('hidden');
+            document.getElementById('applicationForm').dataset.jobId = jobId;
+        }
+
+        function hideApplicationForm() {
+            document.getElementById('applicationForm').classList.add('hidden');
+        }
+
+        // Admin Actions
+        function approveJob(jobId) {
+            jobs = jobs.map(job => job.id === jobId ? {...job, status: 'approved'} : job);
+            saveData();
+            renderAdminTables();
+            renderPublicJobs();
+        }
+
+        function deleteJob(jobId) {
+            jobs = jobs.filter(job => job.id !== jobId);
+            saveData();
+            renderAdminTables();
+            renderPublicJobs();
+        }
+
+        function approveApplication(appId) {
+            applications = applications.map(app => app.id === appId ? {...app, status: 'approved'} : app);
+            saveData();
+            renderAdminTables();
+        }
+
+        // Helpers
+        function getJobTitle(jobId) {
+            const job = jobs.find(job => job.id === jobId);
+            return job ? job.title : 'Deleted Job';
+        }
+
+        function saveData() {
+            localStorage.setItem('jobs', JSON.stringify(jobs));
+            localStorage.setItem('applications', JSON.stringify(applications));
+        }
+
+        // Initialize
+        if (darkMode) {
+            document.body.classList.add('dark');
+            document.getElementById('themeIcon').textContent = '☀️';
+        }
+        renderPublicJobs();
+    </script>
+</body>
+</html>
