@@ -755,11 +755,14 @@
                     <p>${posting.description}</p>
                     <p><strong>Company:</strong> ${posting.company}</p>
                     <p><strong>Contact:</strong> ${posting.email}</p>
-                    ${!posting.approved ? 
-                        `<button onclick="approvePosting(${posting.id})">Approve</button>
-                        <button onclick="deletePosting(${posting.id})">Delete</button>` : 
-                        `<button onclick="openApplicationModal(${posting.id})">Apply Now</button>`
-                    }
+                    <div class="button-group">
+                        ${!posting.approved ? 
+                            `<button onclick="approvePosting(${posting.id})">Approve</button>
+                            <button onclick="deletePosting(${posting.id})">Delete</button>` : 
+                            `<button onclick="openApplicationModal(${posting.id})">Apply Now</button>
+                            <button onclick="contactEmployer('${posting.email}')">Contact Employer</button>`
+                        }
+                    </div>
                 </div>`;
                 
                 // HTML for admin panel with delete buttons for all postings
@@ -768,12 +771,14 @@
                     <p>${posting.description}</p>
                     <p><strong>Company:</strong> ${posting.company}</p>
                     <p><strong>Contact:</strong> ${posting.email}</p>
-                    ${!posting.approved ? 
-                        `<button onclick="approvePosting(${posting.id})">Approve</button>
-                        <button onclick="deletePosting(${posting.id})">Delete</button>` : 
-                        `<button onclick="deletePosting(${posting.id})">Delete</button>
-                        <button onclick="contactEmployer('${posting.email}')">Contact</button>`
-                    }
+                    <div class="button-group">
+                        ${!posting.approved ? 
+                            `<button onclick="approvePosting(${posting.id})">Approve</button>
+                            <button onclick="deletePosting(${posting.id})">Delete</button>` : 
+                            `<button onclick="deletePosting(${posting.id})">Delete</button>
+                            <button onclick="contactEmployer('${posting.email}')">Contact Employer</button>`
+                        }
+                    </div>
                 </div>`;
                 
                 if (posting.approved) {
@@ -1136,24 +1141,20 @@
 
         // Function to contact an applicant
         function contactApplicant(email) {
-            window.location.href = `mailto:${email}?subject=Regarding Your Job Application`;
+            const encodedEmail = encodeURIComponent(email);
+            const subject = encodeURIComponent("Regarding Your Application - School Guidance Job Board");
+            const body = encodeURIComponent("Dear Applicant,\n\nThank you for your interest in our position. We would like to discuss your application further.\n\nBest regards,\nHiring Team");
+            window.location.href = `mailto:${encodedEmail}?subject=${subject}&body=${body}`;
         }
-        
         
         // Function to contact employer via email
         function contactEmployer(email) {
-            window.location.href = `mailto:${email}?subject=Regarding your job posting on School Guidance Job Board`;
-        }
-        
-        // Function to contact applicant via email
-        function contactApplicant(email) {
-            // Ensure email is properly encoded and included in the mailto link
             const encodedEmail = encodeURIComponent(email);
-            // Add a body to the email with a professional greeting
-            const subject = encodeURIComponent("Regarding your application on School Guidance Job Board");
-            const body = encodeURIComponent("Dear Applicant,\n\nThank you for your application to our job posting. We would like to discuss your qualifications further.\n\nBest regards,\nSchool Guidance Job Board Team");
+            const subject = encodeURIComponent("Inquiry about Job Posting - School Guidance Job Board");
+            const body = encodeURIComponent("Dear Hiring Manager,\n\nI am writing to inquire about the job position posted on the School Guidance Job Board. I would appreciate the opportunity to discuss this position further.\n\nBest regards");
             window.location.href = `mailto:${encodedEmail}?subject=${subject}&body=${body}`;
         }
+        
         
         // Function to add demo applications
         function addDemoApplications() {
@@ -1329,7 +1330,10 @@
                 <p>${result.description}</p>
                 <p><strong>Company:</strong> ${result.company}</p>
                 <p><strong>Contact:</strong> ${result.email}</p>
-                <button onclick="openApplicationModal(${result.id})">Apply Now</button>
+                <div class="button-group">
+                    <button onclick="openApplicationModal(${result.id})">Apply Now</button>
+                    <button onclick="contactEmployer('${result.email}')">Contact Employer</button>
+                </div>
             </div>`;
             jobListings.innerHTML += postingHTML;
         });
