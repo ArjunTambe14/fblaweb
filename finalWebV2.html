@@ -634,28 +634,38 @@
             };
         }
 
+        function calculateRelevance(query, fields) {
+            if (!query.trim()) return 1;
+            
+            const searchTerms = query.toLowerCase().split(/\s+/);
+            let totalRelevance = 0;
+            
+            fields.forEach(field => {
+                if (!field) return;
+                const content = field.toLowerCase();
+                searchTerms.forEach(term => {
+                    if (content.includes(term)) {
+                        totalRelevance += 1;
+                    }
+                });
+            });
+            
+            return totalRelevance / (searchTerms.length * fields.length);
+        }
+
         function enhanceSearchResults(query, results) {
             if (!query.trim()) {
                 return results.map(result => ({ ...result, relevance: 1 }));
             }
             
-            const searchTerms = query.toLowerCase().split(/\s+/);
-            
-            return results.map(result => {
-                const content = `${result.title} ${result.company} ${result.description}`.toLowerCase();
-                let relevance = 0;
-                
-                searchTerms.forEach(term => {
-                    if (content.includes(term)) {
-                        relevance += 1;
-                    }
-                });
-                
-                return {
-                    ...result,
-                    relevance: relevance / searchTerms.length
-                };
-            }).sort((a, b) => b.relevance - a.relevance);
+            return results.map(result => ({
+                ...result,
+                relevance: calculateRelevance(query, [
+                    result.title,
+                    result.company,
+                    result.description
+                ])
+            })).sort((a, b) => b.relevance - a.relevance);
         }
 
         // Theme management
@@ -816,6 +826,23 @@
             
             if (existingApplications.length === 0) {
                 const demoPostings = getPostings();
+                // Calculate AI scores before saving demo applications
+                function calculateDemoApplicationScores(applications) {
+                    const demoPostings = getPostings();
+                    applications.forEach(application => {
+                        const job = demoPostings.find(p => p.id === application.jobId);
+                        if (job) {
+                            const matchScores = calculateJobMatch(job, application);
+                            application.aiAnalysis = {
+                                overall: matchScores.overall,
+                                techSkillsScore: matchScores.techSkillsScore,
+                                experienceScore: matchScores.experienceScore,
+                                keywordScore: matchScores.keywordScore
+                            };
+                        }
+                    });
+                }
+
                 const demoApplications = [
                     {
                         id: 2000001,
@@ -853,6 +880,7 @@
                     }
                 });
                 
+                calculateDemoApplicationScores(demoApplications);
                 saveApplications(demoApplications);
             }
         }
@@ -1160,8 +1188,24 @@
         function addDemoApplications() {
             const applications = getApplications();
             
-            // Only add demo applications if there are no existing applications
             
+                // Calculate AI scores before saving demo applications
+                function calculateDemoApplicationScores(applications) {
+                    const demoPostings = getPostings();
+                    applications.forEach(application => {
+                        const job = demoPostings.find(p => p.id === application.jobId);
+                        if (job) {
+                            const matchScores = calculateJobMatch(job, application);
+                            application.aiAnalysis = {
+                                overall: matchScores.overall,
+                                techSkillsScore: matchScores.techSkillsScore,
+                                experienceScore: matchScores.experienceScore,
+                                keywordScore: matchScores.keywordScore
+                            };
+                        }
+                    });
+                }
+
                 const demoApplications = [
                     {
                         id: 2000001,
@@ -1170,7 +1214,7 @@
                         email: "david.anderson@email.com",
                         phone: "555-0123",
                         coverLetter: "As a Senior Software Engineer with 7+ years of experience in full-stack development, I am thrilled to apply for the Software Engineer position at TechInnovate Inc. My expertise in React.js, Node.js, and microservices architecture, combined with a track record of leading successful projects at major tech companies, makes me an ideal candidate. I've particularly enjoyed implementing scalable cloud solutions and mentoring junior developers.",
-                        heardAbout: "LinkedIn",
+                        heardAbout: "School Councelor",
                         dateApplied: new Date(2024, 0, 15).toISOString(),
                         status: "pending"
                     },
@@ -1231,6 +1275,7 @@
                     }
                 ];
                 
+                calculateDemoApplicationScores(demoApplications);
                 saveApplications(demoApplications);
             }
         
@@ -1255,17 +1300,32 @@
     function searchAdminPostings() {
         const searchTerm = document.getElementById('adminSearchInput').value.toLowerCase();
         const postings = getPostings();
+        const applications = getApplications();
         const pendingList = document.getElementById('pendingApprovals');
         const adminApprovedList = document.getElementById('approvedPostings');
+        const applicationsContainer = document.getElementById('pendingApplications');
         
-        // Filter postings
-        const filteredPostings = searchTerm
-            ? postings.filter(p =>
-                p.title.toLowerCase().includes(searchTerm) ||
-                p.company.toLowerCase().includes(searchTerm) ||
-                p.description.toLowerCase().includes(searchTerm)
-            )
-            : postings;
+        if (!searchTerm) {
+            renderPostings();
+            renderApplications();
+            return;
+        }
+        
+        // Enhance search results with relevance scores
+        const enhancedPostings = enhanceSearchResults(searchTerm, postings);
+        const enhancedApplications = applications.map(app => ({
+            ...app,
+            relevance: calculateRelevance(searchTerm, [
+                app.name,
+                app.email,
+                app.coverLetter,
+                postings.find(p => p.id === app.jobId)?.title || ''
+            ])
+        }));
+        
+        // Filter items based on relevance
+        const filteredPostings = enhancedPostings.filter(p => p.relevance > 0);
+        const filteredApplications = enhancedApplications.filter(a => a.relevance > 0);
         
         // Separate pending and approved postings
         const pendingPostings = filteredPostings.filter(p => !p.approved);
@@ -1273,8 +1333,8 @@
         
         // Update pending postings
         pendingList.innerHTML = `<h3>Pending Approvals (${pendingPostings.length})</h3>`;
-        if (pendingPostings.length === 0 && searchTerm) {
-            pendingList.innerHTML += `<p class="no-results">No pending postings match your search.</p>`;
+        if (pendingPostings.length === 0) {
+            pendingList.innerHTML += `<p class="no-results">No pending postings match your search. Try different keywords.</p>`;
         }
         pendingPostings.forEach(posting => {
             const pendingHTML = `<div class="posting fade-in">
@@ -1290,19 +1350,44 @@
         
         // Update approved postings
         adminApprovedList.innerHTML = `<h3>Approved Postings (${approvedPostings.length})</h3>`;
-        if (approvedPostings.length === 0 && searchTerm) {
+        if (approvedPostings.length === 0) {
             adminApprovedList.innerHTML += `<p class="no-results">No approved postings match your search.</p>`;
+        } else {
+            approvedPostings.forEach(posting => {
+                const approvedHTML = `<div class="posting fade-in">
+                    <h3>${posting.title}</h3>
+                    <p>${posting.description}</p>
+                    <p><strong>Company:</strong> ${posting.company}</p>
+                    <p><strong>Contact:</strong> ${posting.email}</p>
+                    <button onclick="deletePosting(${posting.id})">Delete</button>
+                </div>`;
+                adminApprovedList.innerHTML += approvedHTML;
+            });
         }
-        approvedPostings.forEach(posting => {
-            const approvedHTML = `<div class="posting fade-in">
-                <h3>${posting.title}</h3>
-                <p>${posting.description}</p>
-                <p><strong>Company:</strong> ${posting.company}</p>
-                <p><strong>Contact:</strong> ${posting.email}</p>
-                <button onclick="deletePosting(${posting.id})">Delete</button>
-            </div>`;
-            adminApprovedList.innerHTML += approvedHTML;
-        });
+        
+        // Update applications
+        applicationsContainer.innerHTML = `<h3>Applications (${filteredApplications.length})</h3>`;
+        if (filteredApplications.length === 0) {
+            applicationsContainer.innerHTML += `<p class="no-results">No applications match your search.</p>`;
+        } else {
+            filteredApplications.sort((a, b) => b.relevance - a.relevance).forEach(app => {
+                const job = postings.find(p => p.id === app.jobId);
+                const applicationHTML = `<div class="posting fade-in">
+                    <div class="relevance-score">Match Score: ${Math.round(app.relevance * 100)}%</div>
+                    <h3>${app.name} - ${job ? job.title : 'Unknown Position'}</h3>
+                    <p><strong>Email:</strong> ${app.email}</p>
+                    <p><strong>Phone:</strong> ${app.phone}</p>
+                    <p><strong>Cover Letter:</strong> ${app.coverLetter}</p>
+                    <p><strong>Status:</strong> ${app.status}</p>
+                    <p><strong>Applied:</strong> ${new Date(app.dateApplied).toLocaleDateString()}</p>
+                    <div class="button-group">
+                        <button onclick="updateApplicationStatus(${app.id}, 'approved')">Approve</button>
+                        <button onclick="updateApplicationStatus(${app.id}, 'rejected')">Reject</button>
+                    </div>
+                </div>`;
+                applicationsContainer.innerHTML += applicationHTML;
+            });
+        }
     }
     
     function searchJobs() {
@@ -1310,12 +1395,17 @@
         const postings = getPostings();
         const approvedPostings = postings.filter(p => p.approved);
         
+        if (!query) {
+            renderPostings();
+            return;
+        }
+        
         const enhancedResults = enhanceSearchResults(query, approvedPostings);
         
         const jobListings = document.getElementById('jobListings');
         jobListings.innerHTML = `<h2>Available Job Postings (${enhancedResults.length})</h2>`;
     
-        if (enhancedResults.length === 0) {
+        if (enhancedResults.length === 0 || enhancedResults.every(result => result.relevance === 0)) {
             jobListings.innerHTML += `<p class="no-results">No job postings match your search. Try different keywords.</p>`;
             return;
         }

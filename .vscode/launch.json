@@ -20,15 +20,19 @@
             "name": "Attach to Chrome",
             "type": "chrome",
             "request": "attach",
-            "port": 8080,
+            "port": 8000,
             "webRoot": "${workspaceFolder}"
         },
         {
             "name": "Launch Chrome against localhost",
             "type": "chrome",
             "request": "launch",
-            "url": "http://localhost:8080",
+            "url": "http://localhost:8000",
             "webRoot": "${workspaceFolder}"
         }
-    ]
+    ],
+    "scripts": {
+  "start": "node index.js"
+}
+
 }
