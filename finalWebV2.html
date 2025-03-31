@@ -514,16 +514,29 @@
     <script>
         // Theme management
         const AI_CONFIG = {
-            matchThreshold: 0.7,
-            keywordWeight: 0.35,
-            skillsWeight: 0.35,
-            experienceWeight: 0.3,
+            matchThreshold: 0.5, // Lowered threshold for better matching
+            keywordWeight: 0.4, // Increased keyword weight
+            skillsWeight: 0.4, // Adjusted skills weight
+            experienceWeight: 0.2,
+            minKeywordLength: 3,
+            maxNGramSize: 3,
             commonTechKeywords: new Set([
                 'javascript', 'python', 'java', 'react', 'angular', 'vue', 'node', 'express',
                 'sql', 'nosql', 'mongodb', 'aws', 'azure', 'docker', 'kubernetes', 'devops',
                 'frontend', 'backend', 'fullstack', 'web', 'mobile', 'cloud', 'api', 'rest',
-                'graphql', 'microservices', 'agile', 'scrum', 'git', 'ci/cd'
-            ])
+                'graphql', 'microservices', 'agile', 'scrum', 'git', 'ci/cd', 'machine learning',
+                'data science', 'artificial intelligence', 'nlp', 'deep learning', 'tensorflow',
+                'pytorch', 'computer vision', 'data analytics', 'big data', 'data mining',
+                'education', 'teaching', 'counseling', 'guidance', 'curriculum', 'assessment',
+                'instruction', 'learning', 'pedagogy', 'classroom', 'school', 'student', 'teacher'
+            ]),
+            skillLevels: {
+                'beginner': 0.8, // Increased base values
+                'intermediate': 1.0,
+                'advanced': 1.3,
+                'expert': 1.7
+            },
+            contextWeight: 0.3 // Increased context weight
         };
 
         // AI Utility Functions
@@ -560,20 +573,6 @@
             const jobAnalysis = extractKeywords(jobSkills);
             const candidateAnalysis = extractKeywords(candidateSkills);
 
-            // Calculate technical skills match with weighted importance
-            const techSkillsIntersection = new Set(
-                [...jobAnalysis.technicalTerms].filter(x => candidateAnalysis.technicalTerms.includes(x))
-            );
-            const techSkillsScore = jobAnalysis.technicalTerms.length > 0 ?
-                techSkillsIntersection.size / jobAnalysis.technicalTerms.length : 0.5;
-
-            // Calculate general keyword match with context awareness
-            const keywordIntersection = new Set(
-                [...jobAnalysis.keywords].filter(x => candidateAnalysis.keywords.includes(x))
-            );
-            const keywordScore = jobAnalysis.keywords.length > 0 ?
-                keywordIntersection.size / jobAnalysis.keywords.length : 0.5;
-            
             // Ensure we don't match empty searches
             if (candidateAnalysis.keywords.length === 0) {
                 return {
@@ -582,23 +581,105 @@
                     experienceYears: [],
                     keywordScore: 0,
                     techSkillsScore: 0,
-                    experienceScore: 0
+                    experienceScore: 0,
+                    contextScore: 0
                 };
             }
 
-            // Calculate experience match with graduated scaling
+            // Calculate technical skills match with weighted importance and skill level
+            const techSkillsMap = new Map();
+            jobAnalysis.technicalTerms.forEach(term => {
+                const skillLevel = term.match(/\b(beginner|intermediate|advanced|expert)\b/i);
+                const baseWeight = skillLevel ? AI_CONFIG.skillLevels[skillLevel[0].toLowerCase()] : 1.0;
+                techSkillsMap.set(term.replace(/\b(beginner|intermediate|advanced|expert)\s*/i, ''), baseWeight);
+            });
+
+            let techSkillsScore = 0;
+            let matchedSkills = 0;
+            techSkillsMap.forEach((weight, skill) => {
+                if (candidateAnalysis.technicalTerms.includes(skill)) {
+                    techSkillsScore += weight;
+                    matchedSkills++;
+                }
+            });
+            techSkillsScore = techSkillsMap.size > 0 ? techSkillsScore / techSkillsMap.size : 0.5;
+
+            // Calculate keyword match with enhanced scoring and relevance weighting
+            // Count exact matches and partial matches
+            const exactMatches = jobAnalysis.keywords.filter(keyword => 
+                candidateAnalysis.keywords.includes(keyword)
+            ).length;
+            
+            // Calculate match percentage based on job keywords
+            const matchPercentage = jobAnalysis.keywords.length > 0 ? 
+                exactMatches / jobAnalysis.keywords.length : 0;
+            
+            // Apply technical term bonus
+            const techTermMatches = jobAnalysis.keywords.filter(keyword => 
+                AI_CONFIG.commonTechKeywords.has(keyword) && candidateAnalysis.keywords.includes(keyword)
+            ).length;
+            
+            // Enhanced scoring with higher base values and tech bonus
+            const techBonus = techTermMatches > 0 ? 
+                Math.min(0.3 * (techTermMatches / Math.max(jobAnalysis.technicalTerms.length, 1)), 0.3) : 0;
+            
+            // Ensure minimum score is higher than previous algorithm
+            const baseScore = Math.max(0.2, matchPercentage);
+            const keywordScore = Math.min(baseScore + techBonus, 1.0);
+
+            // Calculate experience match with graduated scaling and normalized bonus
             const jobExpYears = jobAnalysis.experienceYears.length > 0 ? Math.max(...jobAnalysis.experienceYears) : 0;
             const candidateExpYears = candidateAnalysis.experienceYears.length > 0 ? Math.max(...candidateAnalysis.experienceYears) : 0;
-            const experienceScore = jobExpYears === 0 ? 0.5 :
-                Math.min(candidateExpYears / Math.max(jobExpYears, 1), 1);
+            let experienceScore = jobExpYears === 0 ? 0.5 : Math.min(candidateExpYears / Math.max(jobExpYears, 1), 1.0);
+            
+            // Add bonus for significantly exceeding required experience, but keep within 1.0
+            if (candidateExpYears > jobExpYears * 1.5) {
+                experienceScore = Math.min(experienceScore * 1.1, 1.0);
+            }
+
+            // Calculate context score based on surrounding terms
+            const contextScore = calculateContextScore(jobAnalysis.keywords, candidateAnalysis.keywords);
 
             return {
                 techSkillsScore,
                 keywordScore,
-                experienceScore
+                experienceScore,
+                contextScore,
+                matchedSkills
             };
         }
 
+        function calculateContextScore(jobKeywords, candidateKeywords) {
+            const windowSize = 4; // Increased window size for better context capture
+            let contextScore = 0;
+            let contextMatches = 0;
+            let technicalMatches = 0;
+
+            // Look for keyword co-occurrences within the sliding window with technical term emphasis
+            for (let i = 0; i <= candidateKeywords.length - windowSize; i++) {
+                const window = candidateKeywords.slice(i, i + windowSize);
+                const matchesInWindow = jobKeywords.filter(keyword => window.includes(keyword));
+                
+                // Count matches even if there's only one match in the window
+                if (matchesInWindow.length > 0) {
+                    contextMatches += matchesInWindow.length;
+                    // Add bonus for technical term matches with higher weighting
+                    technicalMatches += matchesInWindow.filter(term => AI_CONFIG.commonTechKeywords.has(term)).length * 1.5;
+                }
+            }
+
+            // Calculate final context score with enhanced technical term bonus
+            // Use a more generous base score calculation
+            const baseContextScore = jobKeywords.length > 0 ? 
+                Math.min(contextMatches / (jobKeywords.length * 1.5), 1) : 0.5;
+            
+            // Increased technical bonus impact
+            const technicalBonus = technicalMatches > 0 ? 
+                Math.min(technicalMatches / (jobKeywords.length * 0.4), 0.35) : 0;
+            
+            // Ensure minimum score is higher
+            return Math.max(0.15, Math.min(baseContextScore + technicalBonus, 1.0));
+        }
         function generateJobSuggestions(application) {
             const postings = getPostings().filter(p => p.approved);
             return postings.map(posting => ({
@@ -610,21 +691,27 @@
         function calculateJobMatch(job, application) {
             const matchScores = calculateSkillMatch(job.description, application.coverLetter);
             
-            // Normalize individual scores to ensure they're between 0 and 1
-            const normalizedTechScore = Math.min(Math.max(matchScores.techSkillsScore, 0), 1);
-            const normalizedKeywordScore = Math.min(Math.max(matchScores.keywordScore, 0), 1);
-            const normalizedExpScore = Math.min(Math.max(matchScores.experienceScore, 0), 1);
+            // Normalize individual scores with minimum thresholds to prevent extremely low scores
+            const normalizedTechScore = Math.min(Math.max(matchScores.techSkillsScore, 0.15), 1);
+            const normalizedKeywordScore = Math.min(Math.max(matchScores.keywordScore, 0.15), 1);
+            const normalizedExpScore = Math.min(Math.max(matchScores.experienceScore, 0.15), 1);
             
             // Validate weights sum to 1
             const totalWeight = AI_CONFIG.skillsWeight + AI_CONFIG.keywordWeight + AI_CONFIG.experienceWeight;
             const weightNormalizer = totalWeight === 0 ? 1 : totalWeight;
             
-            // Calculate weighted average with validation
-            const overall = (
+            // Calculate weighted average with validation and apply a minimum threshold
+            let overall = (
                 normalizedTechScore * (AI_CONFIG.skillsWeight / weightNormalizer) +
                 normalizedKeywordScore * (AI_CONFIG.keywordWeight / weightNormalizer) +
                 normalizedExpScore * (AI_CONFIG.experienceWeight / weightNormalizer)
             );
+            
+            // Apply a scaling factor to increase overall scores
+            overall = Math.min(overall * 1.2, 1.0);
+            
+            // Ensure minimum overall score
+            overall = Math.max(0.2, overall);
 
             return {
                 techSkillsScore: normalizedTechScore,
@@ -639,20 +726,43 @@
             
             const searchTerms = query.toLowerCase().split(/\s+/);
             let totalRelevance = 0;
+            let contextualBoost = 0;
             
             fields.forEach(field => {
                 if (!field) return;
                 const content = field.toLowerCase();
+                const words = content.split(/\s+/);
+                
+                // Calculate TF-IDF like score for each search term
                 searchTerms.forEach(term => {
-                    if (content.includes(term)) {
-                        totalRelevance += 1;
+                    const termFreq = words.filter(word => word === term).length;
+                    if (termFreq > 0) {
+                        const tf = termFreq / words.length;
+                        const idf = Math.log(1 + fields.length / fields.filter(f => f && f.toLowerCase().includes(term)).length);
+                        totalRelevance += tf * idf;
+                        
+                        // Boost score for technical terms
+                        if (AI_CONFIG.commonTechKeywords.has(term)) {
+                            totalRelevance *= 1.2;
+                        }
+                        
+                        // Context window analysis
+                        for (let i = 0; i < words.length - 2; i++) {
+                            const window = words.slice(i, i + 3);
+                            if (window.includes(term)) {
+                                const contextTerms = searchTerms.filter(t => t !== term && window.includes(t));
+                                contextualBoost += contextTerms.length * 0.1;
+                            }
+                        }
                     }
                 });
             });
             
-            return totalRelevance / (searchTerms.length * fields.length);
+            // Normalize and apply contextual boost
+            const normalizedScore = totalRelevance / (searchTerms.length * fields.length);
+            return Math.min(normalizedScore * (1 + contextualBoost), 1);
         }
-
+        /// AI search results
         function enhanceSearchResults(query, results) {
             if (!query.trim()) {
                 return results.map(result => ({ ...result, relevance: 1 }));
@@ -1213,8 +1323,8 @@
                         name: "David Anderson",
                         email: "david.anderson@email.com",
                         phone: "555-0123",
-                        coverLetter: "As a Senior Software Engineer with 7+ years of experience in full-stack development, I am thrilled to apply for the Software Engineer position at TechInnovate Inc. My expertise in React.js, Node.js, and microservices architecture, combined with a track record of leading successful projects at major tech companies, makes me an ideal candidate. I've particularly enjoyed implementing scalable cloud solutions and mentoring junior developers.",
-                        heardAbout: "School Councelor",
+                        coverLetter: "Im a new coder with little to no experience with only a little bit of Java experience.",
+                        heardAbout: "School Counselor",
                         dateApplied: new Date(2024, 0, 15).toISOString(),
                         status: "pending"
                     },
@@ -1224,8 +1334,8 @@
                         name: "Maria Rodriguez",
                         email: "maria.counselor@email.com",
                         phone: "555-0124",
-                        coverLetter: "With an M.Ed. in School Counseling and 5 years of experience working with diverse student populations, I am excited about the Career Counselor position at Future Pathways Institute. I've successfully guided over 200 students through college applications, resulting in a 95% college acceptance rate. My approach combines data-driven career assessment tools with empathetic one-on-one counseling to help students discover and pursue their ideal career paths.",
-                        heardAbout: "Indeed",
+                        coverLetter: "With an M.Ed. in School Counseling and 5 years of experience working with diverse student populations, I am excited about the Career Counselor position at Future Pathways Institute. I've successfully guided over 200 students through college applications, resulting in a 95% college acceptance rate. My approach combines data-driven career assessment tools with empathetic one-on-one counseling to help students discover and pursue their ideal career paths. Support students' academic and social-emotional development. I can also Develop and implement comprehensive school counseling programs",
+                        heardAbout: "Google Search", 
                         dateApplied: new Date(2024, 0, 14).toISOString(),
                         status: "pending"
                     },
@@ -1249,7 +1359,7 @@
                         coverLetter: "With a Ph.D. in Computer Science focusing on Machine Learning and 4 years of industry experience leading data science teams, I am excited about the Data Scientist position at DataVision Analytics. My research in neural networks has been published in top conferences, and I've implemented ML solutions that increased customer retention by 35% at my current company. I'm particularly interested in applying my expertise in deep learning and natural language processing to solve real-world business challenges.",
                         heardAbout: "Glassdoor",
                         dateApplied: new Date(2024, 0, 16).toISOString(),
-                        status: "pending"
+                        status: "approved"
                     },
                     {
                         id: 2000005,
@@ -1269,7 +1379,7 @@
                         email: "james.marketing@email.com",
                         phone: "555-0128",
                         coverLetter: "With 5 years of experience in digital marketing and a proven track record of growing brand presence across multiple channels, I am excited about the Marketing Coordinator position. I've managed campaigns that increased social media engagement by 150% and led to a 40% boost in lead generation. My experience includes successful collaboration with cross-functional teams to create integrated marketing strategies that align with business objectives.",
-                        heardAbout: "Twitter",
+                        heardAbout: "School Counselor",
                         dateApplied: new Date(2024, 0, 17).toISOString(),
                         status: "pending"
                     }
