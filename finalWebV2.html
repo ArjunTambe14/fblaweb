@@ -521,14 +521,23 @@
             minKeywordLength: 3,
             maxNGramSize: 3,
             commonTechKeywords: new Set([
-                'javascript', 'python', 'java', 'react', 'angular', 'vue', 'node', 'express',
-                'sql', 'nosql', 'mongodb', 'aws', 'azure', 'docker', 'kubernetes', 'devops',
-                'frontend', 'backend', 'fullstack', 'web', 'mobile', 'cloud', 'api', 'rest',
-                'graphql', 'microservices', 'agile', 'scrum', 'git', 'ci/cd', 'machine learning',
-                'data science', 'artificial intelligence', 'nlp', 'deep learning', 'tensorflow',
-                'pytorch', 'computer vision', 'data analytics', 'big data', 'data mining',
+                // Programming Languages & Frameworks
+                'javascript', 'typescript', 'python', 'java', 'c++', 'c#', 'ruby', 'php', 'swift', 'kotlin', 'go', 'rust',
+                'react', 'angular', 'vue', 'node', 'express', 'django', 'flask', 'spring', 'laravel',
+                // Database & Infrastructure
+                'sql', 'nosql', 'mongodb', 'postgres', 'mysql', 'redis', 'aws', 'azure', 'gcp', 'docker', 'kubernetes',
+                // Development Roles & Concepts
+                'frontend', 'backend', 'fullstack', 'devops', 'sre', 'qa', 'ux', 'ui', 'web', 'mobile', 'cloud',
+                'api', 'rest', 'graphql', 'microservices', 'ci/cd', 'git', 'agile', 'scrum',
+                // AI & Data Science
+                'machine learning', 'deep learning', 'nlp', 'computer vision', 'tensorflow', 'pytorch',
+                'data science', 'data analytics', 'big data', 'data mining', 'artificial intelligence',
+                // Education & Counseling
                 'education', 'teaching', 'counseling', 'guidance', 'curriculum', 'assessment',
-                'instruction', 'learning', 'pedagogy', 'classroom', 'school', 'student', 'teacher'
+                'instruction', 'learning', 'pedagogy', 'classroom', 'school', 'student', 'teacher',
+                // Common Technical Terms
+                'algorithm', 'database', 'framework', 'library', 'platform', 'server', 'client', 'cache',
+                'security', 'testing', 'debugging', 'optimization', 'scalability', 'performance'
             ]),
             skillLevels: {
                 'beginner': 0.8, // Increased base values
@@ -650,35 +659,55 @@
         }
 
         function calculateContextScore(jobKeywords, candidateKeywords) {
-            const windowSize = 4; // Increased window size for better context capture
+            const windowSize = 5; // Increased window size for better context capture
             let contextScore = 0;
             let contextMatches = 0;
             let technicalMatches = 0;
+            let commonWordMatches = 0;
 
-            // Look for keyword co-occurrences within the sliding window with technical term emphasis
+            // Look for keyword co-occurrences within the sliding window with enhanced scoring
             for (let i = 0; i <= candidateKeywords.length - windowSize; i++) {
                 const window = candidateKeywords.slice(i, i + windowSize);
-                const matchesInWindow = jobKeywords.filter(keyword => window.includes(keyword));
+                const matchesInWindow = jobKeywords.filter(keyword => {
+                    // Exact match check
+                    if (window.includes(keyword)) return true;
+                    
+                    // Fuzzy match for longer terms
+                    if (keyword.length > 3) {
+                        return window.some(word => 
+                            word.length > 3 && 
+                            (word.includes(keyword) || keyword.includes(word)));
+                    }
+                    return false;
+                });
                 
-                // Count matches even if there's only one match in the window
                 if (matchesInWindow.length > 0) {
                     contextMatches += matchesInWindow.length;
-                    // Add bonus for technical term matches with higher weighting
-                    technicalMatches += matchesInWindow.filter(term => AI_CONFIG.commonTechKeywords.has(term)).length * 1.5;
+                    // Enhanced scoring for technical terms
+                    const techMatches = matchesInWindow.filter(term => AI_CONFIG.commonTechKeywords.has(term));
+                    technicalMatches += techMatches.length * 2.0;
+                    // Track common word matches separately
+                    commonWordMatches += (matchesInWindow.length - techMatches.length);
                 }
             }
 
-            // Calculate final context score with enhanced technical term bonus
-            // Use a more generous base score calculation
-            const baseContextScore = jobKeywords.length > 0 ? 
-                Math.min(contextMatches / (jobKeywords.length * 1.5), 1) : 0.5;
+            // Calculate normalized scores with improved weighting
+            const baseContextScore = jobKeywords.length > 0 ?
+                Math.min((contextMatches + commonWordMatches * 0.7) / (jobKeywords.length * 2), 1) : 0.4;
             
-            // Increased technical bonus impact
-            const technicalBonus = technicalMatches > 0 ? 
-                Math.min(technicalMatches / (jobKeywords.length * 0.4), 0.35) : 0;
+            // Enhanced technical bonus with graduated scaling
+            const technicalBonus = technicalMatches > 0 ?
+                Math.min(technicalMatches / (jobKeywords.length * 0.3), 0.4) : 0;
             
-            // Ensure minimum score is higher
-            return Math.max(0.15, Math.min(baseContextScore + technicalBonus, 1.0));
+            // Calculate common word bonus with diminishing returns
+            const commonWordBonus = commonWordMatches > 0 ?
+                Math.min(commonWordMatches / (jobKeywords.length * 0.8), 0.2) : 0;
+            
+            // Combine scores with normalized weights
+            const combinedScore = baseContextScore + technicalBonus + commonWordBonus;
+            
+            // Ensure reasonable minimum score while maintaining maximum cap
+            return Math.max(0.2, Math.min(combinedScore, 1.0));
         }
         function generateJobSuggestions(application) {
             const postings = getPostings().filter(p => p.approved);
@@ -724,26 +753,71 @@
         function calculateRelevance(query, fields) {
             if (!query.trim()) return 1;
             
-            const searchTerms = query.toLowerCase().split(/\s+/);
+            const searchTerms = query.toLowerCase()
+                .split(/\s+/)
+                .filter(term => term.length >= 2);
+            
             let totalRelevance = 0;
             let contextualBoost = 0;
+            let technicalBoost = 0;
             
             fields.forEach(field => {
                 if (!field) return;
                 const content = field.toLowerCase();
-                const words = content.split(/\s+/);
+                const words = content.split(/\s+/).filter(word => word.length >= 2);
                 
-                // Calculate TF-IDF like score for each search term
+                // Enhanced relevance calculation with improved fuzzy matching
                 searchTerms.forEach(term => {
-                    const termFreq = words.filter(word => word === term).length;
-                    if (termFreq > 0) {
-                        const tf = termFreq / words.length;
-                        const idf = Math.log(1 + fields.length / fields.filter(f => f && f.toLowerCase().includes(term)).length);
-                        totalRelevance += tf * idf;
+                    // Calculate exact matches with higher weight
+                    const exactMatches = words.filter(word => word === term).length;
+                    
+                    // Improved fuzzy matching with Levenshtein distance consideration
+                    const fuzzyMatches = term.length > 3 ?
+                        words.filter(word => {
+                            if (word.length > 3) {
+                                // Direct substring match
+                                if (word.includes(term) || term.includes(word)) return true;
+                                
+                                // Calculate edit distance for similar words
+                                const maxDistance = Math.floor(Math.min(term.length, word.length) * 0.3);
+                                let distance = 0;
+                                let i = 0, j = 0;
+                                
+                                while (i < term.length && j < word.length) {
+                                    if (term[i] !== word[j]) distance++;
+                                    if (distance > maxDistance) return false;
+                                    i++; j++;
+                                }
+                                
+                                distance += Math.abs(term.length - word.length);
+                                return distance <= maxDistance;
+                            }
+                            return false;
+                        }).length : 0;
+                    
+                    if (exactMatches > 0 || fuzzyMatches > 0) {
+                        // Calculate weighted term frequency with higher exact match weight
+                        const tf = (exactMatches * 1.5 + (fuzzyMatches * 0.7)) / words.length;
                         
-                        // Boost score for technical terms
+                        // Enhanced technical term boost with domain-specific weighting
+                        const termBoost = AI_CONFIG.commonTechKeywords.has(term) ? 3.5 : 1.5;
+                        
+                        // Calculate relevance score with improved technical boost and IDF weighting
+                        const relevance = tf * termBoost;
+                        const idf = Math.log(2 + fields.length / fields.filter(f => f && f.toLowerCase().includes(term)).length);
+                        totalRelevance += tf * idf * termBoost;
+                        
+                        // Progressive boost for technical terms with contextual analysis
                         if (AI_CONFIG.commonTechKeywords.has(term)) {
-                            totalRelevance *= 1.2;
+                            totalRelevance *= 1.8;
+                            // Add contextual boost for technical terms appearing in sequence
+                            for (let i = 0; i < words.length - 2; i++) {
+                                const window = words.slice(i, i + 3);
+                                if (window.includes(term)) {
+                                    const contextTerms = searchTerms.filter(t => t !== term && window.includes(t));
+                                    contextualBoost += contextTerms.length * 0.1;
+                                }
+                            }
                         }
                         
                         // Context window analysis
@@ -758,8 +832,9 @@
                 });
             });
             
-            // Normalize and apply contextual boost
-            const normalizedScore = totalRelevance / (searchTerms.length * fields.length);
+            // Normalize with enhanced base score and apply contextual boost
+            let normalizedScore = (totalRelevance / (searchTerms.length * fields.length)) * 1.5;
+            normalizedScore = Math.min(Math.max(normalizedScore * (1 + contextualBoost), 0.15), 1.0);
             return Math.min(normalizedScore * (1 + contextualBoost), 1);
         }
         /// AI search results
@@ -883,6 +958,17 @@
                             <button onclick="contactEmployer('${posting.email}')">Contact Employer</button>`
                         }
                     </div>
+                    ${posting.relatedJobs && posting.relatedJobs.length > 0 ? `
+                        <div class="related-jobs">
+                            <h4>Related Positions</h4>
+                            ${posting.relatedJobs.map(job => `
+                                <div class="related-job-item">
+                                    <p><strong>${job.title}</strong> at ${job.company}</p>
+                                    <p>Match: ${Math.round(job.matchScore)}%</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
                 </div>`;
                 
                 // HTML for admin panel with delete buttons for all postings
@@ -1132,10 +1218,18 @@
                 return;
             }
 
-            // Calculate AI match scores
+            // Calculate AI match scores with enhanced suggestions
             const matchScores = calculateJobMatch(job, { coverLetter });
             const suggestedJobs = generateJobSuggestions({ coverLetter })
-                .filter(suggestion => suggestion.job.id !== jobId)
+                .filter(suggestion => suggestion.job.id !== jobId && suggestion.score.overall > 0.3)
+                .map(suggestion => ({
+                    ...suggestion,
+                    score: {
+                        ...suggestion.score,
+                        overall: Math.min(Math.max(suggestion.score.overall * 1.8, 0.15), 1)
+                    }
+                }))
+                .sort((a, b) => b.score.overall - a.score.overall)
                 .slice(0, 3);
 
             const application = {
